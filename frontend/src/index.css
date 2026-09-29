@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply text-ink font-sans antialiased;
+    /* Subtle background depth: two soft tints from the documented palette. */
+    background:
+      radial-gradient(1100px 500px at 85% -10%, rgba(164, 170, 244, 0.14), transparent 60%),
+      radial-gradient(900px 480px at -10% 110%, rgba(56, 61, 231, 0.06), transparent 55%),
+      #f7f8fa;
+    background-attachment: fixed;
+  }
+
+  /* Visible focus for every interactive element (accessibility spec §9). */
+  :focus-visible {
+    outline: 2px solid theme("colors.primary.DEFAULT");
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  ::selection {
+    background: theme("colors.primary.subtle");
+  }
+}
+
+@layer components {
+  .card {
+    @apply border-line bg-surface rounded-card border shadow-card;
+  }
+}
+
+/* Respect prefers-reduced-motion (UI/UX spec §9). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Thin, unobtrusive chat scrollbars */
+.chat-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: theme("colors.line");
+  border-radius: 8px;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Markdown answer typography (assistant answers). */
+.answer-markdown {
+  @apply text-[15px] leading-[1.65];
+}
+.answer-markdown h1,
+.answer-markdown h2,
+.answer-markdown h3 {
+  @apply mt-4 mb-1.5 font-semibold tracking-[-0.01em];
+}
+.answer-markdown h1 {
+  @apply text-lg;
+}
+.answer-markdown h2,
+.answer-markdown h3 {
+  @apply text-base;
+}
+.answer-markdown p {
+  @apply my-2;
+}
+.answer-markdown ul,
+.answer-markdown ol {
+  @apply my-2 space-y-1 pl-5;
+}
+.answer-markdown ul {
+  @apply list-disc;
+}
+.answer-markdown ol {
+  @apply list-decimal;
+}
+.answer-markdown code {
+  @apply bg-primary-subtle rounded px-1 py-0.5 text-[0.85em];
+}
+.answer-markdown pre {
+  @apply bg-primary-subtle my-2 overflow-x-auto rounded-lg p-3 text-[0.85em];
+}
+.answer-markdown blockquote {
+  @apply border-line text-ink-muted my-2 border-l-2 pl-3 italic;
+}
+.answer-markdown strong {
+  @apply font-semibold;
+}
