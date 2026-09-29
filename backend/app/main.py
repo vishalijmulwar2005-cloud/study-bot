@@ -7,16 +7,19 @@ routers, health probe, and the background processing worker lifecycle.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api import documents as documents_router
 from app.api import feedback as feedback_router
 from app.api import sessions as sessions_router
 from app.bundle import ServiceBundle, build_bundle
 from app.config import Settings, get_settings
-from app.core.errors import install_error_handlers
+from app.core.errors import AppError, ErrorCode, install_error_handlers
 from app.core.logging import CorrelationIdMiddleware, configure_logging, get_logger, log_event
 from app.core.security import IdentityCookieMiddleware
 from app.database import check_database
@@ -81,6 +84,26 @@ def create_app(
             database=check_database(),
             rag_configured=bundle.settings.rag_configured,
         )
+
+    # Optional same-origin frontend: when STATIC_DIR points at the built React
+    # app, serve it from this process. The identity cookie is SameSite=Lax, so
+    # a single origin keeps authentication first-party without cross-site
+    # cookie workarounds (which Safari and hardened Chrome reject anyway).
+    static_dir = Path(settings.static_dir) if settings.static_dir else None
+    if static_dir and (static_dir / "index.html").is_file():
+        assets_dir = static_dir / "assets"
+        if assets_dir.is_dir():
+            app.mount("/assets", StaticFiles(directory=assets_dir), name="static-assets")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_frontend(full_path: str) -> FileResponse:
+            if full_path.startswith("api/"):
+                # Unknown API paths must stay 404 JSON, not fall back to the SPA.
+                raise AppError(ErrorCode.NOT_FOUND)
+            candidate = static_dir / full_path
+            if full_path and candidate.is_relative_to(static_dir) and candidate.is_file():
+                return FileResponse(candidate)
+            return FileResponse(static_dir / "index.html")
 
     db_ok = check_database()
     log_event(

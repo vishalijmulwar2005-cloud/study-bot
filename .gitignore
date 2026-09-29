@@ -21,6 +21,8 @@ dist/
 
 # App data (local storage / dev DB)
 backend/storage/
+# Built frontend copied into the backend for same-origin serving (Render build)
+backend/static/
 *.sqlite3
 *.db
 

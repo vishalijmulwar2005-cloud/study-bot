@@ -259,12 +259,24 @@ _engine = None
 _session_factory: sessionmaker | None = None
 
 
+def _normalize_database_url(url: str) -> str:
+    # Managed providers (Render, Neon, Supabase) hand out postgres:// or
+    # postgresql:// URLs with no driver segment. This app speaks psycopg3, so
+    # name the dialect explicitly; URLs that already carry a driver pass
+    # through untouched.
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+psycopg://", 1)
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
 def get_engine(settings: Settings | None = None):
     global _engine
     if _engine is None:
         settings = settings or get_settings()
         _engine = create_engine(
-            settings.database_url,
+            _normalize_database_url(settings.database_url),
             pool_pre_ping=settings.db_pool_pre_ping,
             pool_size=settings.db_pool_size,
             max_overflow=settings.db_max_overflow,
@@ -280,7 +292,7 @@ def get_engine(settings: Settings | None = None):
             # re-PARSE cost is negligible at MVP scale.
             connect_args={
                 "connect_timeout": 3,
-                "sslmode": "disable",
+                "sslmode": settings.db_sslmode,
                 "prepare_threshold": None,
             },
         )

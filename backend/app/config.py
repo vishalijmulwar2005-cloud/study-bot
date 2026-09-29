@@ -29,6 +29,10 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/pdf_qa"
+    # TLS mode for PostgreSQL connections. Local/dev Postgres runs without TLS;
+    # managed providers (Render, Neon, Supabase) require SSL — set
+    # DB_SSLMODE=require there.
+    db_sslmode: str = "disable"
     # Connection pool tuning. The dev WASM database (devdb/server.mjs) is
     # single-user: set DB_POOL_SIZE=1, DB_MAX_OVERFLOW=0, DB_POOL_PRE_PING=false
     # for it (see README). Production PostgreSQL keeps the defaults.
@@ -43,6 +47,10 @@ class Settings(BaseSettings):
     # Storage
     storage_dir: str = "storage"
     delete_dependent_chat: str = "delete"  # "delete" | "retain"
+    # Optional: directory holding the built React frontend (index.html +
+    # assets/) to serve from this process. Empty = API only (local dev, where
+    # the Vite dev server serves the UI with its /api proxy).
+    static_dir: str = ""
 
     # Embedding provider (OpenAI-compatible)
     embedding_api_key: str = ""

@@ -1,0 +1,67 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# One web service: FastAPI API + the built React frontend served from the same
+# origin (the anonymous session cookie is SameSite=Lax, so a single origin
+# keeps authentication first-party). One PostgreSQL instance with pgvector;
+# the migration runner creates the extension and tables on every start.
+#
+# Secrets marked sync: false (LLM_API_KEY, EMBEDDING_API_KEY) are prompted
+# once when the Blueprint is applied — or set them in the dashboard later.
+
+databases:
+  - name: study-bot-db
+    databaseName: studybot
+    plan: free # free Postgres expires after 30 days; upgrade to persist
+
+services:
+  - type: web
+    name: study-bot
+    runtime: python
+    plan: free # sleeps after 15 min idle; cold start ~1 min
+    healthCheckPath: /api/v1/health
+    buildCommand: |
+      cd frontend && npm ci && npm run build
+      cd ..
+      rm -rf backend/static
+      mkdir -p backend/static
+      cp -r frontend/dist/. backend/static/
+      pip install -r backend/requirements.txt
+    startCommand: cd backend && python -m migrations.run_migrations && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.11
+      - key: APP_ENV
+        value: production
+      # Same-origin deployment: the browser calls /api directly, no CORS list.
+      - key: CORS_ORIGINS
+        value: ""
+      - key: DATABASE_URL
+        fromDatabase:
+          name: study-bot-db
+          property: connectionString
+      # Render Postgres requires TLS.
+      - key: DB_SSLMODE
+        value: require
+      - key: STATIC_DIR
+        value: static
+      # ---- RAG providers (the only required secrets) ----
+      - key: LLM_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: LLM_MODEL
+        value: openai/gpt-oss-20b
+      - key: LLM_API_KEY
+        sync: false
+      - key: EMBEDDING_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai
+      - key: EMBEDDING_MODEL
+        value: gemini-embedding-001
+      # Must match the DB vector column (migrations read EMBEDDING_DIM).
+      - key: EMBEDDING_DIM
+        value: "768"
+      - key: EMBEDDING_DIMENSIONS
+        value: "768"
+      # Model-dependent: 0.48 for gemini-embedding-001 (see README).
+      - key: EVIDENCE_THRESHOLD
+        value: "0.48"
+      - key: EMBEDDING_API_KEY
+        sync: false

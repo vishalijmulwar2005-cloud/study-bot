@@ -118,6 +118,31 @@ It is single-user — keep the single-connection pool settings in `backend/.env`
 (`DB_POOL_SIZE=1`, `DB_MAX_OVERFLOW=0`, `DB_POOL_PRE_PING=false`). For
 production, use real PostgreSQL + pgvector (docker compose or managed).
 
+## Deploying to Render
+
+The repo ships a [render.yaml](render.yaml) Blueprint: **one web service**
+(FastAPI + the built React frontend served from the same origin — the
+anonymous session cookie stays first-party) and **one PostgreSQL** instance
+with pgvector (the migration runner creates the extension and tables on
+startup).
+
+1. Render Dashboard → **New → Blueprint** → pick this repo → **Apply**.
+   Render provisions the database, builds the frontend, installs backend
+   deps, and runs migrations automatically.
+2. The Blueprint prompts for the two secrets (`sync: false`):
+   `LLM_API_KEY` (NVIDIA) and `EMBEDDING_API_KEY` (Gemini). They can also be
+   added later under the web service → **Environment**.
+3. Health check: `/api/v1/health` — `rag_configured` flips to `true` once
+   both keys are set. Upload a PDF, wait for **Ready**, ask away.
+
+Free-tier notes: the web service sleeps after 15 min idle (first request
+takes ~1 min to wake); the free Postgres **expires after 30 days** (upgrade
+the plan or recreate the database to persist); the disk is ephemeral —
+**uploaded PDFs are lost on every restart/redeploy**, so re-upload after a
+deploy (documents in chat history reference the local disk by design; swap
+`LocalFileStorage` for object storage to change that). If NVIDIA returns 429
+for the pinned chat model, switch `LLM_MODEL` in the dashboard.
+
 ## RAG configuration (documented, model-dependent)
 
 | Parameter | Value | Why |
