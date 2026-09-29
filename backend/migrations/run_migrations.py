@@ -69,6 +69,12 @@ def main() -> int:
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
+            # Managed providers (Render/Neon/Supabase) ship the pgvector
+            # binaries but do NOT pre-install the extension in the database.
+            # The DB owner may create it, so the check does it idempotently —
+            # 0001_initial.sql repeats it harmlessly.
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
             conn.execute(text("SELECT '[0,0]'::vector"))
     except Exception as exc:  # noqa: BLE001 — report a single clear blocker
         print(f"database check FAILED: {exc.__class__.__name__}", file=sys.stderr)
