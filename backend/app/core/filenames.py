@@ -5,7 +5,7 @@ server-generated random keys (see services/storage.py), so filesystem safety
 never depends on this. Sanitization exists to satisfy the Security spec's
 "safe filenames" requirement and to keep hostile names out of API responses.
 
-Rules: strip control characters, cut to the final path segment (both / and \),
+Rules: strip control characters, cut to the final path segment (both / and \\),
 remove Windows-illegal characters, collapse traversal dot-runs, normalize
 whitespace, guard reserved device names, cap length while preserving the
 extension, preserve safe Unicode, and fall back to `document.pdf`.
