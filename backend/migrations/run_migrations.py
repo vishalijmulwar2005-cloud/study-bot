@@ -72,6 +72,9 @@ def main() -> int:
             conn.execute(text("SELECT '[0,0]'::vector"))
     except Exception as exc:  # noqa: BLE001 — report a single clear blocker
         print(f"database check FAILED: {exc.__class__.__name__}", file=sys.stderr)
+        # Show the real cause (host/port/auth) — psycopg messages never
+        # include the password, so this is safe to print in CI/PAAS logs.
+        print(f"detail: {exc}", file=sys.stderr)
         print(
             "Ensure PostgreSQL with the pgvector extension is running and DATABASE_URL is correct\n"
             "(docker compose up -d db).",
